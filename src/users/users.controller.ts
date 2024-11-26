@@ -6,46 +6,38 @@ import {
   Patch,
   Param,
   Delete,
+  ValidationPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/signup-user.dto';
+import { SignInUserDto } from './dto/signin-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-
-interface UserType {
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  password: string;
-}
-
-interface UserCredentialsType {
-  email: string;
-  password: string;
-}
 
 /**
  * Need to hasH password
  * return a jwt
-*/
+ */
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /* User sign-up */
   @Post()
-  create(
-    @Body()
-    user: UserType,
+  async create(
+    @Body(ValidationPipe)
+    createUserDto: CreateUserDto,
   ) {
-    return this.usersService.create(user);
+    return this.usersService.create(createUserDto);
   }
 
+  /* User sign-in */
   @Post('signin')
   signIn(
-    @Body()
-    userCredentials: UserCredentialsType,
+    @Body(ValidationPipe)
+    signInUserDto: SignInUserDto,
   ) {
-    return this.usersService.signIn(userCredentials);
+    return this.usersService.signIn(signInUserDto);
   }
 
   @Get()

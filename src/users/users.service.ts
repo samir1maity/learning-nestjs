@@ -1,10 +1,10 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument } from './schemas/user.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 
 interface UserType {
   email: string;
@@ -26,29 +26,37 @@ export class UsersService {
     try {
       const { email, firstName, lastName, password } = user;
 
+      console.log('password', password);
+
       if (!email || !password) {
         return {
           status: HttpStatus.BAD_REQUEST,
           message: 'Email and Password is required',
-          successful: false,
+          success: false,
         };
       }
 
-      const isUserExsist = this.userModel.findOne({
+      const isUserExsist = await this.userModel.findOne({
         email,
       });
 
       if (isUserExsist) {
-        return {
-          status: HttpStatus.NOT_ACCEPTABLE,
-          message: 'user already exsist',
-          successful: false,
-        };
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_ACCEPTABLE,
+            message: 'User already exists',
+            success: false,
+          },
+          HttpStatus.NOT_ACCEPTABLE,
+        );
       }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      console.log('hashedPassword', hashedPassword);
 
       const data = await this.userModel.create({
         email,
-        password,
+        password: hashedPassword,
         firstName,
         lastName,
       });
@@ -57,7 +65,7 @@ export class UsersService {
         status: HttpStatus.CREATED,
         message: 'user is created',
         data,
-        successful: true,
+        success: true,
       };
     } catch (error) {
       console.log('error at create user services -->', error);
@@ -69,34 +77,50 @@ export class UsersService {
   }
 
   async signIn(userCredentials: UserCredentialsType) {
-    // console.log('flow reached here')
     const { email, password } = userCredentials;
 
     if (!email || !password) {
       return {
         status: HttpStatus.NOT_ACCEPTABLE,
         message: 'email and password are requird',
-        successful: false,
+        success: false,
       };
     }
 
-    const data = await this.userModel.findOne({ email });
+    const user = await this.userModel.findOne({ email });
 
-    console.log('data', data);
+    if (!user) {
+      // return {
+      //   status: HttpStatus.BAD_REQUEST,
+      //   message: 'user is not exsist',
+      //   success: false,
+      // };
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_ACCEPTABLE,
+          message: 'User already exists',
+          success: false,
+        },
+        HttpStatus.NOT_ACCEPTABLE,
+      );
+    }
 
-    if (!data) {
+    console.log('user', user);
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: 'user is not exsist',
-        successful: false,
+        message: 'password is wrong',
+        success: false,
       };
     }
 
     return {
       status: HttpStatus.ACCEPTED,
-      message: 'login successful',
-      data,
-      successful: true,
+      message: 'login success',
+      success: true,
     };
   }
 

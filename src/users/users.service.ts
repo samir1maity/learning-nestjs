@@ -4,11 +4,17 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument } from './schemas/user.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import bcrypt from 'bcrypt';
 
 interface UserType {
   email: string;
   firstName?: string;
   lastName?: string;
+  password: string;
+}
+
+interface UserCredentialsType {
+  email: string;
   password: string;
 }
 
@@ -60,6 +66,38 @@ export class UsersService {
         error,
       };
     }
+  }
+
+  async signIn(userCredentials: UserCredentialsType) {
+    // console.log('flow reached here')
+    const { email, password } = userCredentials;
+
+    if (!email || !password) {
+      return {
+        status: HttpStatus.NOT_ACCEPTABLE,
+        message: 'email and password are requird',
+        successful: false,
+      };
+    }
+
+    const data = await this.userModel.findOne({ email });
+
+    console.log('data', data);
+
+    if (!data) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: 'user is not exsist',
+        successful: false,
+      };
+    }
+
+    return {
+      status: HttpStatus.ACCEPTED,
+      message: 'login successful',
+      data,
+      successful: true,
+    };
   }
 
   findAll() {

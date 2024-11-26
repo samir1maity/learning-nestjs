@@ -18,6 +18,16 @@ interface UserType {
   password: string;
 }
 
+interface UserCredentialsType {
+  email: string;
+  password: string;
+}
+
+/**
+ * Need to hasH password
+ * return a jwt
+*/
+
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -30,9 +40,16 @@ export class UsersController {
     return this.usersService.create(user);
   }
 
+  @Post('signin')
+  signIn(
+    @Body()
+    userCredentials: UserCredentialsType,
+  ) {
+    return this.usersService.signIn(userCredentials);
+  }
+
   @Get()
   findAll() {
-    // return this.usersService.findAll();
     return [];
   }
 

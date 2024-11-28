@@ -28,7 +28,7 @@ export class UsersController {
     @Body(ValidationPipe)
     createUserDto: CreateUserDto,
   ) {
-    return this.usersService.create(createUserDto);
+    return await this.usersService.create(createUserDto);  
   }
 
   /* User sign-in */
@@ -42,7 +42,7 @@ export class UsersController {
 
   @Get()
   findAll() {
-    return [];
+    return this.usersService.findAll();
   }
 
   @Get(':id')

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   HttpStatus,
   Injectable,
   NotAcceptableException,
@@ -14,43 +15,65 @@ import * as bcrypt from 'bcrypt';
 import { SignInUserDto } from './dto/signin-user.dto';
 import * as jwt from 'jsonwebtoken';
 import { user_secret, admin_secret } from './config';
+import { CustomException } from 'src/exceptions/customException';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async create(userCreateDto: CreateUserDto) {
+    console.log('process.env', process.env);
     try {
       const { email, firstName, lastName, password } = userCreateDto;
 
-      console.log('password', password);
+      // Check if user exists
+      const isUserExist = await this.userModel.findOne({ email });
 
-      const isUserExsist = await this.userModel.findOne({
-        email,
-      });
+      if (isUserExist) {
+        throw new NotAcceptableException('user already exists');
+      }
 
-      if (isUserExsist)
-        throw new NotAcceptableException('user is already exsist');
-
+      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
-      console.log('hashedPassword', hashedPassword);
 
-      const data = await this.userModel.create({
+      // Create user
+      await this.userModel.create({
         email,
         password: hashedPassword,
         firstName,
         lastName,
       });
 
+      // Return success response
       return {
         status: HttpStatus.CREATED,
-        message: 'user is created',
-        data,
         success: true,
+        message: 'User is created successfully',
       };
     } catch (error) {
-      console.log('error at create user services -->', error);
-      return error;
+      console.error('Error in create service:', error);
+
+      if (error instanceof NotAcceptableException) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_ACCEPTABLE,
+            error: true,
+            message: error.message,
+            success: false,
+          },
+          HttpStatus.NOT_ACCEPTABLE,
+        );
+      }
+
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: true,
+          message: error.message || 'An unexpected error occurred',
+          success: true,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -77,8 +100,10 @@ export class UsersService {
     };
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll() {
+    const data = await this.userModel.find();
+    console.log('data', data)
+    return data;
   }
 
   findOne(id: number) {

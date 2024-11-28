@@ -79,7 +79,7 @@ export class UsersService {
 
   async signIn(signInUserDto: SignInUserDto) {
     const { email, password } = signInUserDto;
-
+    console.log('email', email);
     const user = await this.userModel.findOne({ email });
 
     if (!user) {
@@ -102,7 +102,7 @@ export class UsersService {
 
   async findAll() {
     const data = await this.userModel.find();
-    console.log('data', data)
+    console.log('data', data);
     return data;
   }
 

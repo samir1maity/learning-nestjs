@@ -11,28 +11,44 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './users/logger.middleware';
-
-/**
- * rate limiting
- * validations
- */
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
-    //config
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    //db connection
     MongooseModule.forRoot(process.env.DATABASE_URL),
-    //------------
     UsersModule,
     AuthModule,
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 60000,
+        limit: 6,
+      },
+      {
+        name: 'medium',
+        ttl: 60000,
+        limit: 6,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 6,
+      },
+    ]),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
